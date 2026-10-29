@@ -4736,6 +4736,11 @@ void cmdq_core_initialize(void)
 		if (!cmdq_clients[index])
 			cmdq_ctx.thread[index].used = true;
 
+	/* Reserve all secure threads so they are never acquired dynamically */
+	for (index = CMDQ_MIN_SECURE_THREAD_ID;
+		index < CMDQ_MIN_SECURE_THREAD_ID + CMDQ_MAX_SECURE_THREAD_COUNT; index++)
+		cmdq_ctx.thread[index].used = true;
+
 #ifdef CMDQ_SECURE_PATH_SUPPORT
 	/* for secure path reserve irq notify thread */
 	cmdq_ctx.thread[CMDQ_SEC_IRQ_THREAD].used = true;

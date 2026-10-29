@@ -636,13 +636,17 @@ static void cmdq_mdp_lock_thread(struct cmdqRecStruct *handle)
 
 	/* assign client since mdp acquire thread after create pkt */
 	handle->pkt->cl = cmdq_helper_mbox_client(thread);
+	if (unlikely(!handle->pkt->cl)) {
+		CMDQ_ERR("%s cl is NULL for thread:%d\n", __func__, thread);
+		return;
+	}
 
-	if (!handle->secData.is_secure)
-		cmdq_mbox_enable(((struct cmdq_client *) handle->pkt->cl)->chan);
 #ifdef CMDQ_SECURE_PATH_SUPPORT
-	else
+	if (mdp_ctx.thread[thread].secure || handle->secData.is_secure)
 		cmdq_sec_mbox_enable(((struct cmdq_client *) handle->pkt->cl)->chan);
+	else
 #endif
+		cmdq_mbox_enable(((struct cmdq_client *) handle->pkt->cl)->chan);
 
 	CMDQ_PROF_END(current->pid, __func__);
 }
@@ -742,12 +746,15 @@ static void cmdq_mdp_handle_stop(struct cmdqRecStruct *handle)
 	/* make sure smi clock off at last */
 	mutex_lock(&mdp_thread_mutex);
 
-	if (!handle->secData.is_secure)
-		cmdq_mbox_disable(((struct cmdq_client *) handle->pkt->cl)->chan);
+	if (handle->pkt && handle->pkt->cl) {
 #ifdef CMDQ_SECURE_PATH_SUPPORT
-	else
-		cmdq_sec_mbox_disable(((struct cmdq_client *)handle->pkt->cl)->chan);
+		if ((handle->thread >= 0 && handle->thread < CMDQ_MAX_THREAD_COUNT &&
+		     mdp_ctx.thread[handle->thread].secure) || handle->secData.is_secure)
+			cmdq_sec_mbox_disable(((struct cmdq_client *) handle->pkt->cl)->chan);
+		else
 #endif
+			cmdq_mbox_disable(((struct cmdq_client *) handle->pkt->cl)->chan);
+	}
 
 	cmdq_mdp_common_clock_disable(handle->engineFlag);
 
@@ -876,7 +883,12 @@ static s32 cmdq_mdp_find_free_thread(struct cmdqRecStruct *handle)
 		/* This thread is dedicated for readback command */
 		if (index == mdp_ctx.pq_readback.rb_thread_id)
 			continue;
+		if (threads[index].secure != handle->secData.is_secure)
+			continue;
 #endif
+
+		if (!cmdq_helper_mbox_client(index))
+			continue;
 
 		if (!threads[index].acquired || threads[index].engine_flag ||
 			threads[index].task_count ||
@@ -906,7 +918,13 @@ static s32 cmdq_mdp_find_free_thread(struct cmdqRecStruct *handle)
 			/* for engine flag empty, assign acquired thread */
 			for (index = MDP_THREAD_START;
 				index < max_thd; index++) {
+#if defined(CMDQ_SECURE_PATH_SUPPORT)
+				if (threads[index].secure != handle->secData.is_secure)
+					continue;
+#endif
 				if (!threads[index].acquired)
+					continue;
+				if (!cmdq_helper_mbox_client(index))
 					continue;
 				thread = index;
 			}

@@ -689,14 +689,22 @@ static int AF_i2c_probe(struct i2c_client *client,
 	return 0;
 }
 
+static bool g_af_driver_registered;
+
 static int AF_probe(struct platform_device *pdev)
 {
+	if (g_af_driver_registered)
+		return 0;
+	g_af_driver_registered = true;
 	return i2c_add_driver(&AF_i2c_driver);
 }
 
 static int AF_remove(struct platform_device *pdev)
 {
-	i2c_del_driver(&AF_i2c_driver);
+	if (g_af_driver_registered) {
+		g_af_driver_registered = false;
+		i2c_del_driver(&AF_i2c_driver);
+	}
 	return 0;
 }
 

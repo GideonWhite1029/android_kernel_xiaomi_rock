@@ -2460,9 +2460,22 @@ static __init int cmdq_drv_init(void)
 
 void cmdq_mbox_enable(void *chan)
 {
-	struct cmdq *cmdq = container_of(((struct mbox_chan *)chan)->mbox,
-		typeof(*cmdq), mbox);
+	struct mbox_chan *mbox_chan = (struct mbox_chan *)chan;
+	struct cmdq *cmdq;
 	s32 mbox_usage;
+
+	if (unlikely(!mbox_chan || !mbox_chan->mbox)) {
+		cmdq_err("%s: invalid chan %p\n", __func__, chan);
+		return;
+	}
+
+	if (unlikely(mbox_chan->mbox->ops != &cmdq_mbox_chan_ops)) {
+		cmdq_err("%s: chan %p is not normal cmdq chan (ops mismatch)\n",
+			__func__, chan);
+		return;
+	}
+
+	cmdq = container_of(mbox_chan->mbox, typeof(*cmdq), mbox);
 
 	WARN_ON(cmdq->suspended);
 	if (cmdq->suspended) {
@@ -2488,9 +2501,22 @@ EXPORT_SYMBOL(cmdq_mbox_enable);
 
 void cmdq_mbox_disable(void *chan)
 {
-	struct cmdq *cmdq = container_of(((struct mbox_chan *)chan)->mbox,
-		typeof(*cmdq), mbox);
+	struct mbox_chan *mbox_chan = (struct mbox_chan *)chan;
+	struct cmdq *cmdq;
 	s32 mbox_usage;
+
+	if (unlikely(!mbox_chan || !mbox_chan->mbox)) {
+		cmdq_err("%s: invalid chan %p\n", __func__, chan);
+		return;
+	}
+
+	if (unlikely(mbox_chan->mbox->ops != &cmdq_mbox_chan_ops)) {
+		cmdq_err("%s: chan %p is not normal cmdq chan (ops mismatch)\n",
+			__func__, chan);
+		return;
+	}
+
+	cmdq = container_of(mbox_chan->mbox, typeof(*cmdq), mbox);
 
 	WARN_ON(cmdq->suspended);
 	if (cmdq->suspended) {
