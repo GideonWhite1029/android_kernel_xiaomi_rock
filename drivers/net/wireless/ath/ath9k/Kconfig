@@ -174,7 +174,6 @@ config ATH9K_PCI_NO_EEPROM
 config ATH9K_HTC
 	tristate "Atheros HTC based wireless cards support"
 	depends on USB && MAC80211
-	select MAC80211_LEDS if LEDS_CLASS=y || LEDS_CLASS=MAC80211
 	select ATH9K_HW
 	select ATH9K_COMMON
 	help
