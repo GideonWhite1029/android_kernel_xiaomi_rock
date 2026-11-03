@@ -159,3 +159,6 @@ sphinx_*/
 # KSUN
 KernelSU-Next/
 drivers/kernelsu
+
+# Local build output
+/out/
