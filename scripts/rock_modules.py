@@ -17,7 +17,8 @@ import sys
 # module. "oot" holds the out-of-tree Wi-Fi drivers built by build_nethunter.sh.
 GROUPS = {
     "adapters": ("drivers/net/wireless", "drivers/bluetooth", "net/bluetooth",
-                 "drivers/usb/serial", "drivers/net/usb", "oot"),
+                 "drivers/usb/serial", "drivers/net/usb", "drivers/net/can",
+                 "net/netfilter", "net/sched", "oot"),
     "sdr": ("drivers/media/usb/airspy", "drivers/media/usb/hackrf"),
 }
 # Imported by ROM modules, but exported by neither the ROM's own Image nor its modules

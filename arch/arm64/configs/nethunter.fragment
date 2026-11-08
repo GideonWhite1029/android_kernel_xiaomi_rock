@@ -90,3 +90,29 @@ CONFIG_USB_SERIAL_FTDI_SIO=m
 CONFIG_USB_SERIAL_PL2303=m
 CONFIG_USB_SERIAL_OPTION=m
 CONFIG_USB_NET_RNDIS_HOST=m
+
+# ---- Netfilter: tethering and firewall (loaded from the KSU module) ----
+# x_tables core is built in (NETFILTER_XTABLES=y); these are =m and ship in the
+# module. xt_HL rewrites TTL/hoplimit so a carrier can't spot tethering; it is the
+# single module behind the IPv4 "TTL" and IPv6 "HL" targets.
+CONFIG_NETFILTER_XT_TARGET_HL=m
+CONFIG_IP_NF_TARGET_TTL=m
+CONFIG_IP6_NF_TARGET_HL=m
+# ipset + the xt "set" match, used by AFWall+ and large rule sets
+CONFIG_IP_SET=m
+CONFIG_IP_SET_BITMAP_IP=m
+CONFIG_IP_SET_HASH_IP=m
+CONFIG_IP_SET_HASH_NET=m
+CONFIG_IP_SET_HASH_IPPORT=m
+CONFIG_IP_SET_LIST_SET=m
+CONFIG_NETFILTER_XT_SET=m
+# CAKE qdisc: kills bufferbloat when tethering over a slow uplink
+CONFIG_NET_SCH_CAKE=m
+
+# ---- CAN bus adapters (automotive work) ----
+# CAN core and can-dev are built in (CAN=y, CAN_DEV=y); only the USB glue is =m.
+CONFIG_CAN_VCAN=m
+CONFIG_CAN_SLCAN=m
+CONFIG_CAN_GS_USB=m
+CONFIG_CAN_PEAK_USB=m
+CONFIG_CAN_8DEV_USB=m
