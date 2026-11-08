@@ -16,6 +16,17 @@ CONFIG_LOCALVERSION="-UndergroundKernel-NetHunter"
 # KernelSU-Next
 CONFIG_KSU=y
 
+# Baseband Guard: built-in LSM that blocks writes to critical partitions (modem,
+# persist, nvram, nvdata, protect*) from untrusted root domains (su/ksu/magisk),
+# while leaving boot/recovery/userdata writable so kernel flashing still works.
+# Pairs with KernelSU: root stays usable but cannot brick the baseband/boot chain.
+# Uses the modern DEFINE_LSM path (dynamic lbs_cred blob) -> no struct-layout change,
+# KMI-safe for the ROM modules. Must be appended to CONFIG_LSM to activate.
+CONFIG_BBG=y
+# CONFIG_BBG_BLOCK_BOOT is not set
+# CONFIG_BBG_BLOCK_RECOVERY is not set
+CONFIG_LSM="lockdown,yama,loadpin,safesetid,integrity,selinux,smack,tomoyo,apparmor,bpf,baseband_guard"
+
 # ---- USB Wi-Fi adapters ----
 CONFIG_WLAN_VENDOR_ATH=y
 CONFIG_ATH9K_HTC=m

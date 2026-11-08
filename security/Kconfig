@@ -315,5 +315,7 @@ config LSM
 
 source "security/Kconfig.hardening"
 
+source "security/baseband_guard/Kconfig"
+
 endmenu
 

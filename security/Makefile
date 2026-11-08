@@ -36,3 +36,6 @@ obj-$(CONFIG_BPF_LSM)			+= bpf/
 # Object integrity file lists
 subdir-$(CONFIG_INTEGRITY)		+= integrity
 obj-$(CONFIG_INTEGRITY)			+= integrity/
+
+# Baseband Guard: anti-brick LSM protecting modem/persist/nvram from untrusted root
+obj-$(CONFIG_BBG)			+= baseband_guard/
