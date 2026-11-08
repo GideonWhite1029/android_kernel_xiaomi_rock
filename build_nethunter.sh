@@ -117,6 +117,28 @@ for entry in "${OOT_DRIVERS[@]}"; do
     fi
 done
 
+# SUSFS for KernelSU-Next: an out-of-tree LKM (susfs_guard_lkm.ko) that hides root,
+# mounts and paths from detectors. It deliberately references six non-exported kernel
+# symbols (task_work_add, saved_boot_config, init_mm, __flush_dcache_area,
+# copy_to_kernel_nofault, __set_fixmap) and resolves them at load time: KernelSU-Next's
+# kallsyms-aware susfsd loads it, a plain insmod cannot, so it is NOT added to load.order.
+# KBUILD_MODPOST_WARN=1 lets modpost leave those undefined instead of failing the build.
+SUSFS_SRC=$ROOT/KernelSU-Next/kernel/susfs
+"${MAKE[@]}" -j"$JOBS" M="$SUSFS_SRC" KBUILD_MODPOST_WARN=1 modules
+SUSFS_KO=$SUSFS_SRC/susfs_guard_lkm.ko
+[ -f "$SUSFS_KO" ] || { echo "susfs: susfs_guard_lkm.ko not built" >&2; exit 1; }
+# Guard against a toolchain that resolves the six at link time (wrong image) or adds new
+# undefined symbols: the set of unresolved symbols must be exactly the expected six.
+EXPECT_SUSFS_UNDEF=$(printf '%s\n' __flush_dcache_area copy_to_kernel_nofault init_mm \
+    saved_boot_config __set_fixmap task_work_add | sort -u | tr '\n' ' ')
+GOT_SUSFS_UNDEF=$("$CLANG_DIR/bin/llvm-nm" -u "$SUSFS_KO" | awk '{print $2}' |
+    grep -Ex 'task_work_add|saved_boot_config|init_mm|__flush_dcache_area|copy_to_kernel_nofault|__set_fixmap' |
+    sort -u | tr '\n' ' ')
+if [ "$GOT_SUSFS_UNDEF" != "$EXPECT_SUSFS_UNDEF" ]; then
+    echo "susfs: expected exactly the six load-time symbols, got: '$GOT_SUSFS_UNDEF'" >&2
+    exit 1
+fi
+
 for group in adapters sdr; do
     python3 -I "$ROOT/scripts/rock_modules.py" order "$OUT" "$ROM_DIR" "$group" > "$OUT/$group-modules.txt"
 done
@@ -225,6 +247,21 @@ for ko in "${SDR_KO[@]}"; do
     "$CLANG_DIR/bin/llvm-strip" --strip-debug -o "$KSU_MOD/modules/$(basename "$ko")" "$ko"
     basename "$ko" >> "$KSU_MOD/sdr.order"
 done
+
+# SUSFS module: kept out of modules/ and load.order because susfsd (not insmod) loads it.
+# Shipped under susfs/ and also as a standalone file in dist for the KernelSU-Next manager.
+mkdir -p "$KSU_MOD/susfs"
+"$CLANG_DIR/bin/llvm-strip" --strip-debug -o "$KSU_MOD/susfs/susfs_guard_lkm.ko" "$SUSFS_KO"
+cp "$KSU_MOD/susfs/susfs_guard_lkm.ko" "$DIST/susfs_guard_lkm-$RELEASE.ko"
+cat > "$KSU_MOD/susfs/README.txt" <<EOF
+susfs_guard_lkm.ko for $RELEASE
+
+This is the SUSFS kernel module for KernelSU-Next. It is NOT auto-loaded by this
+Magisk/KSU module: a plain insmod fails because it resolves six non-exported kernel
+symbols at load time. Load it through the KernelSU-Next manager's SUSFS feature
+(susfsd), which uses a kallsyms-aware loader, or with the bundled susfs_insmod.
+The module must match the running kernel exactly: $RELEASE
+EOF
 
 # Firmware: Android's ueventd also searches /system/etc/firmware, which the module overlays
 FW_SRC=$OUT/linux-firmware
