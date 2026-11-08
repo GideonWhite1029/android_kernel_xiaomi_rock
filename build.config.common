@@ -4,10 +4,10 @@ KMI_GENERATION=9
 LLVM=1
 DEPMOD=depmod
 DTC=dtc
-CLANG_PREBUILT_BIN=prebuilts-master/clang/host/linux-x86/clang-r416183b/bin
+CLANG_PREBUILT_BIN=prebuilts-master/clang/host/linux-x86/clang-r563880b/bin
 BUILDTOOLS_PREBUILT_BIN=build/build-tools/path/linux-x86
 
-KCFLAGS="${KCFLAGS} -D__ANDROID_COMMON_KERNEL__"
+KCFLAGS="${KCFLAGS} -D__ANDROID_COMMON_KERNEL__ -Wno-error=bitwise-instead-of-logical -Wno-error=strict-prototypes -Wno-error=unused-but-set-variable -Wno-error=cast-function-type-strict -Wno-error=single-bit-bitfield-constant-conversion -Wno-error=deprecated-non-prototype -Wno-error=implicit-int"
 EXTRA_CMDS=''
 STOP_SHIP_TRACEPRINTK=1
 IN_KERNEL_MODULES=1

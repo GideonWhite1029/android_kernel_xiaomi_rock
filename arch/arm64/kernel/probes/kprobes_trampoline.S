@@ -1,6 +1,10 @@
-/* SPDX-License-Identifier: GPL-2.0 */
+/* SPDX-License-Identifier: GPL-2.0-only */
 /*
- * trampoline entry and return code for kretprobes.
+ * Trampoline to trace irqs off for architectures, such as x86, which
+ * don't have tracing in their ret_from_fork/kernel_thread assembly.
+ *
+ * Copyright (C) 2017 Linaro Limited.
+ * Author: AKASHI Takahiro <takahiro.akashi@linaro.org>
  */
 
 #include <linux/linkage.h>
@@ -69,8 +73,8 @@ SYM_CODE_START(kretprobe_trampoline)
 	mov x0, sp
 	bl trampoline_probe_handler
 	/*
-	 * Replace trampoline address in lr with actual orig_ret_addr return
-	 * address.
+	 * Replace trampoline address in lr with the
+	 * actual return address needed for normal function exit
 	 */
 	mov lr, x0
 
