@@ -3,7 +3,7 @@
 # Produces a flashable kernel zip and a KernelSU module with USB adapter drivers
 # (Wi-Fi, Bluetooth, serial, SDR) and their firmware.
 #
-# Env: CLANG_DIR  AOSP clang r416183b (default ~/toolchains/clang-r416183b)
+# Env: CLANG_DIR  AOSP clang r563880c, LLVM 21 (default ~/toolchains/clang-r563880c)
 #      ROM_DIR    ROM modules to verify against (kernel_xiaomi_rock@lineage-23.2)
 #      LTO        thin (default) or full (gets OOM-killed with 15 GB RAM + 15 GB swap)
 #      JOBS       make parallelism
@@ -11,7 +11,7 @@ set -euo pipefail
 
 ROOT=$(cd "$(dirname "$0")" && pwd)
 OUT=$ROOT/out
-CLANG_DIR=${CLANG_DIR:-$HOME/toolchains/clang-r416183b}
+CLANG_DIR=${CLANG_DIR:-$HOME/toolchains/clang-r563880c}
 ROM_DIR=${ROM_DIR:-$OUT/rom-modules}
 LTO=${LTO:-thin}
 JOBS=${JOBS:-$(nproc)}
