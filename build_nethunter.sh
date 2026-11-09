@@ -45,7 +45,12 @@ export PATH=$CLANG_DIR/bin:$PATH
 export KBUILD_BUILD_USER=build-user KBUILD_BUILD_HOST=build-host
 # Same as build.config.rock; the Xiaomi Makefiles select rock sources from these
 export BUILD_TARGET_PRODUCT=rock TARGET_BUILD_VARIANT=user MTK_PLATFORM=mt6789
-MAKE=(make -C "$ROOT" O="$OUT" ARCH=arm64 LLVM=1 LLVM_IAS=1
+# Clang 21 diagnostics that vendor code trips over, as in build.config.common
+KCFLAGS="-Wno-error=bitwise-instead-of-logical -Wno-error=strict-prototypes \
+-Wno-error=unused-but-set-variable -Wno-error=cast-function-type-strict \
+-Wno-error=single-bit-bitfield-constant-conversion -Wno-error=deprecated-non-prototype \
+-Wno-error=implicit-int"
+MAKE=(make -C "$ROOT" O="$OUT" ARCH=arm64 LLVM=1 LLVM_IAS=1 KCFLAGS="$KCFLAGS"
       CROSS_COMPILE=aarch64-linux-gnu- CROSS_COMPILE_COMPAT=arm-linux-gnueabi-)
 
 [ -x "$CLANG_DIR/bin/clang" ] || { echo "clang not found in $CLANG_DIR" >&2; exit 1; }
