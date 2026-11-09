@@ -332,11 +332,6 @@ struct mem_cgroup {
 	struct deferred_split deferred_split_queue;
 #endif
 
-#ifdef CONFIG_LRU_GEN
-	/* per-memcg mm_struct list */
-	struct lru_gen_mm_list mm_list;
-#endif
-
 	ANDROID_OEM_DATA(1);
 	struct mem_cgroup_per_node *nodeinfo[0];
 	/* WARNING: nodeinfo must be the last member here */
@@ -1696,5 +1691,38 @@ static inline struct mem_cgroup *mem_cgroup_from_obj(void *p)
 }
 
 #endif /* CONFIG_MEMCG_KMEM */
+
+#ifdef CONFIG_LRU_GEN
+extern struct lru_gen_lruvec lru_gen_node_lruvec[MAX_NUMNODES];
+
+static inline struct lru_gen_lruvec *lruvec_lru_gen(struct lruvec *lruvec)
+{
+#ifdef CONFIG_MEMCG
+	if (test_bit(LRUVEC_LRU_GEN_MEMCG, &lruvec->flags))
+		return (struct lru_gen_lruvec *)(container_of(lruvec,
+				struct mem_cgroup_per_node, lruvec) + 1);
+#endif
+	return &lru_gen_node_lruvec[container_of(lruvec, struct pglist_data,
+						 __lruvec)->node_id];
+}
+
+static inline struct lru_gen_struct *lruvec_lrugen(struct lruvec *lruvec)
+{
+	return &lruvec_lru_gen(lruvec)->lrugen;
+}
+
+static inline struct lru_gen_mm_state *lruvec_mm_state(struct lruvec *lruvec)
+{
+	return &lruvec_lru_gen(lruvec)->mm_state;
+}
+
+#ifdef CONFIG_MEMCG
+/* the per-memcg mm_struct list follows nodeinfo[] in the same allocation */
+static inline struct lru_gen_mm_list *memcg_lru_gen_mm_list(struct mem_cgroup *memcg)
+{
+	return (struct lru_gen_mm_list *)&memcg->nodeinfo[nr_node_ids];
+}
+#endif
+#endif /* CONFIG_LRU_GEN */
 
 #endif /* _LINUX_MEMCONTROL_H */

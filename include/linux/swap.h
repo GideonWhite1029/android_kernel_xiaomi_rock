@@ -130,8 +130,8 @@ union swap_header {
  */
 struct reclaim_state {
 	unsigned long reclaimed_slab;
-#ifdef CONFIG_LRU_GEN
-	/* per-thread mm walk data */
+#if defined(CONFIG_LRU_GEN) && !defined(__GENKSYMS__)
+	/* per-thread mm walk data, appended outside the KMI */
 	struct lru_gen_mm_walk *mm_walk;
 #endif
 };

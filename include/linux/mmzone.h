@@ -450,6 +450,22 @@ struct lru_gen_mm_walk {
 	bool full_scan;
 };
 
+/*
+ * Per-lruvec MGLRU state. struct lruvec is embedded in pglist_data and
+ * mem_cgroup_per_node, both part of the GKI KMI, so this lives outside of it:
+ * in lru_gen_node_lruvec[] for a node's own lruvec, and right after the
+ * mem_cgroup_per_node allocation for a memcg's lruvec (see lruvec_lru_gen()).
+ */
+struct lru_gen_lruvec {
+	/* evictable pages divided into generations */
+	struct lru_gen_struct		lrugen;
+	/* to concurrently iterate lru_gen_mm_list */
+	struct lru_gen_mm_state		mm_state;
+};
+
+/* set in lruvec->flags of a lruvec embedded in mem_cgroup_per_node */
+#define LRUVEC_LRU_GEN_MEMCG		(BITS_PER_LONG - 1)
+
 void lru_gen_init_lruvec(struct lruvec *lruvec);
 void lru_gen_look_around(struct page_vma_mapped_walk *pvmw);
 
@@ -495,12 +511,6 @@ struct lruvec {
 	unsigned long			refaults[ANON_AND_FILE];
 	/* Various lruvec state flags (enum lruvec_flags) */
 	unsigned long			flags;
-#ifdef CONFIG_LRU_GEN
-	/* evictable pages divided into generations */
-	struct lru_gen_struct		lrugen;
-	/* to concurrently iterate lru_gen_mm_list */
-	struct lru_gen_mm_state		mm_state;
-#endif
 #ifdef CONFIG_MEMCG
 	struct pglist_data *pgdat;
 #endif
@@ -1036,10 +1046,6 @@ typedef struct pglist_data {
 
 	unsigned long		flags;
 
-#ifdef CONFIG_LRU_GEN
-	/* kswap mm walk data */
-	struct lru_gen_mm_walk	mm_walk;
-#endif
 
 	ZONE_PADDING(_pad2_)
 

@@ -5268,6 +5268,7 @@ EXPORT_SYMBOL_GPL(mem_cgroup_from_id);
 static int alloc_mem_cgroup_per_node_info(struct mem_cgroup *memcg, int node)
 {
 	struct mem_cgroup_per_node *pn;
+	size_t size;
 	int tmp = node;
 	/*
 	 * This routine is called against possible nodes.
@@ -5279,7 +5280,12 @@ static int alloc_mem_cgroup_per_node_info(struct mem_cgroup *memcg, int node)
 	 */
 	if (!node_state(node, N_NORMAL_MEMORY))
 		tmp = -1;
-	pn = kzalloc_node(sizeof(*pn), GFP_KERNEL, tmp);
+	size = sizeof(*pn);
+#ifdef CONFIG_LRU_GEN
+	/* lruvec_lru_gen() finds the MGLRU state right after pn */
+	size += sizeof(struct lru_gen_lruvec);
+#endif
+	pn = kzalloc_node(size, GFP_KERNEL, tmp);
 	if (!pn)
 		return 1;
 
@@ -5299,6 +5305,10 @@ static int alloc_mem_cgroup_per_node_info(struct mem_cgroup *memcg, int node)
 	}
 
 	lruvec_init(&pn->lruvec);
+#ifdef CONFIG_LRU_GEN
+	set_bit(LRUVEC_LRU_GEN_MEMCG, &pn->lruvec.flags);
+#endif
+	lru_gen_init_lruvec(&pn->lruvec);
 	pn->usage_in_excess = 0;
 	pn->on_tree = false;
 	pn->memcg = memcg;
@@ -5354,6 +5364,10 @@ static struct mem_cgroup *mem_cgroup_alloc(void)
 
 	size = sizeof(struct mem_cgroup);
 	size += nr_node_ids * sizeof(struct mem_cgroup_per_node *);
+#ifdef CONFIG_LRU_GEN
+	/* see memcg_lru_gen_mm_list() */
+	size += sizeof(struct lru_gen_mm_list);
+#endif
 
 	memcg = kzalloc(size, GFP_KERNEL);
 	if (!memcg)

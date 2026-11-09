@@ -232,7 +232,7 @@ static void *lru_gen_eviction(struct page *page)
 	BUILD_BUG_ON(LRU_GEN_WIDTH + LRU_REFS_WIDTH > BITS_PER_LONG - EVICTION_SHIFT);
 
 	lruvec = mem_cgroup_lruvec(memcg, pgdat);
-	lrugen = &lruvec->lrugen;
+	lrugen = lruvec_lrugen(lruvec);
 	min_seq = READ_ONCE(lrugen->min_seq[type]);
 	token = (min_seq << LRU_REFS_WIDTH) | max(refs - 1, 0);
 
@@ -268,7 +268,7 @@ static void lru_gen_refault(struct page *page, void *shadow)
 		goto unlock;
 
 	lruvec = mem_cgroup_lruvec(memcg, pgdat);
-	lrugen = &lruvec->lrugen;
+	lrugen = lruvec_lrugen(lruvec);
 
 	mod_lruvec_state(lruvec, WORKINGSET_REFAULT_BASE + type, delta);
 

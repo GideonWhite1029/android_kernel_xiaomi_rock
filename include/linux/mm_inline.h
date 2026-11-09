@@ -157,7 +157,7 @@ static inline int page_lru_gen(struct page *page)
 
 static inline bool lru_gen_is_active(struct lruvec *lruvec, int gen)
 {
-	unsigned long max_seq = lruvec->lrugen.max_seq;
+	unsigned long max_seq = lruvec_lrugen(lruvec)->max_seq;
 
 	VM_WARN_ON_ONCE(gen >= MAX_NR_GENS);
 
@@ -172,7 +172,7 @@ static inline void lru_gen_update_size(struct lruvec *lruvec, struct page *page,
 	int zone = page_zonenum(page);
 	int delta = thp_nr_pages(page);
 	enum lru_list lru = type * LRU_INACTIVE_FILE;
-	struct lru_gen_struct *lrugen = &lruvec->lrugen;
+	struct lru_gen_struct *lrugen = lruvec_lrugen(lruvec);
 
 	VM_WARN_ON_ONCE(old_gen != -1 && old_gen >= MAX_NR_GENS);
 	VM_WARN_ON_ONCE(new_gen != -1 && new_gen >= MAX_NR_GENS);
@@ -218,7 +218,7 @@ static inline bool lru_gen_add_page(struct lruvec *lruvec, struct page *page, bo
 	int gen = page_lru_gen(page);
 	int type = page_is_file_lru(page);
 	int zone = page_zonenum(page);
-	struct lru_gen_struct *lrugen = &lruvec->lrugen;
+	struct lru_gen_struct *lrugen = lruvec_lrugen(lruvec);
 
 	VM_WARN_ON_ONCE_PAGE(gen != -1, page);
 

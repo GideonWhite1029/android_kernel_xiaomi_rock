@@ -830,8 +830,11 @@ struct task_struct {
 #ifdef CONFIG_MEMCG
 	unsigned			in_user_fault:1;
 #endif
-#ifdef CONFIG_LRU_GEN
-	/* whether the LRU algorithm may apply to this access */
+#if defined(CONFIG_LRU_GEN) && !defined(__GENKSYMS__)
+	/*
+	 * whether the LRU algorithm may apply to this access; takes a spare
+	 * bit of this bitfield word, so the KMI layout of task_struct is kept
+	 */
 	unsigned			in_lru_fault:1;
 #endif
 #ifdef CONFIG_COMPAT_BRK

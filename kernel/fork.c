@@ -1058,6 +1058,19 @@ static void mm_init_uprobes_state(struct mm_struct *mm)
 #endif
 }
 
+/*
+ * MGLRU keeps its per-mm state right after mm_cpumask in the mm_cachep object,
+ * so mm_struct itself keeps the GKI KMI layout. See mm_cache_init().
+ */
+static inline void *mm_lru_gen_ext(struct mm_struct *mm)
+{
+#ifdef CONFIG_LRU_GEN
+	return (char *)mm + sizeof(struct mm_struct) + cpumask_size();
+#else
+	return NULL;
+#endif
+}
+
 static struct mm_struct *mm_init(struct mm_struct *mm, struct task_struct *p,
 	struct user_namespace *user_ns)
 {
@@ -1110,7 +1123,7 @@ static struct mm_struct *mm_init(struct mm_struct *mm, struct task_struct *p,
 		goto fail_nocontext;
 
 	mm->user_ns = get_user_ns(user_ns);
-	lru_gen_init_mm(mm);
+	lru_gen_init_mm(mm, mm_lru_gen_ext(mm));
 	return mm;
 
 fail_nocontext:
@@ -2982,6 +2995,9 @@ void __init mm_cache_init(void)
 	 * can have, taking hotplug into account (nr_cpu_ids).
 	 */
 	mm_size = sizeof(struct mm_struct) + cpumask_size();
+#ifdef CONFIG_LRU_GEN
+	mm_size += sizeof(struct lru_gen_mm);
+#endif
 
 	mm_cachep = kmem_cache_create_usercopy("mm_struct",
 			mm_size, ARCH_MIN_MMSTRUCT_ALIGN,

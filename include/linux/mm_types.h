@@ -31,6 +31,7 @@
 
 struct address_space;
 struct mem_cgroup;
+struct lru_gen_mm;
 
 /*
  * Each physical page in the system has a struct page associated with
@@ -601,24 +602,17 @@ struct mm_struct {
 #ifdef CONFIG_IOMMU_SUPPORT
 		u32 pasid;
 #endif
-#ifdef CONFIG_LRU_GEN
-		struct {
-			/* this mm_struct is on lru_gen_mm_list */
-			struct list_head list;
-#ifdef CONFIG_MEMCG
-			/* points to the memcg of "owner" above */
-			struct mem_cgroup *memcg;
-#endif
-			/*
-			 * Set when switching to this mm_struct, as a hint of
-			 * whether it has been used since the last time per-node
-			 * page table walkers cleared the corresponding bits.
-			 */
-			nodemask_t nodes;
-		} lru_gen;
-#endif /* CONFIG_LRU_GEN */
 
+#ifdef CONFIG_LRU_GEN
+		/*
+		 * MGLRU state is kept out of the frozen KMI layout: it sits
+		 * after cpu_bitmap in the same mm_cachep object, and statically
+		 * defined mms (init_mm, efi_mm) leave it NULL.
+		 */
+		ANDROID_KABI_USE(1, struct lru_gen_mm *lru_gen);
+#else
 		ANDROID_KABI_RESERVE(1);
+#endif
 	} __randomize_layout;
 
 	/*
@@ -647,6 +641,23 @@ static inline cpumask_t *mm_cpumask(struct mm_struct *mm)
 
 #ifdef CONFIG_LRU_GEN
 
+struct lru_gen_mm {
+	/* this mm_struct is on lru_gen_mm_list */
+	struct list_head list;
+	/* the mm_struct this state belongs to */
+	struct mm_struct *mm;
+#ifdef CONFIG_MEMCG
+	/* points to the memcg of "owner" above */
+	struct mem_cgroup *memcg;
+#endif
+	/*
+	 * Set when switching to this mm_struct, as a hint of
+	 * whether it has been used since the last time per-node
+	 * page table walkers cleared the corresponding bits.
+	 */
+	nodemask_t nodes;
+};
+
 struct lru_gen_mm_list {
 	/* mm_struct list for page table walkers */
 	struct list_head fifo;
@@ -660,12 +671,17 @@ void lru_gen_del_mm(struct mm_struct *mm);
 void lru_gen_migrate_mm(struct mm_struct *mm);
 #endif
 
-static inline void lru_gen_init_mm(struct mm_struct *mm)
+/* @ext: storage for the MGLRU state, NULL for a statically defined mm */
+static inline void lru_gen_init_mm(struct mm_struct *mm, struct lru_gen_mm *ext)
 {
-	INIT_LIST_HEAD(&mm->lru_gen.list);
-	nodes_clear(mm->lru_gen.nodes);
+	mm->lru_gen = ext;
+	if (!ext)
+		return;
+	INIT_LIST_HEAD(&ext->list);
+	ext->mm = mm;
+	nodes_clear(ext->nodes);
 #ifdef CONFIG_MEMCG
-	mm->lru_gen.memcg = NULL;
+	ext->memcg = NULL;
 #endif
 }
 
@@ -676,7 +692,8 @@ static inline void lru_gen_use_mm(struct mm_struct *mm)
 	 * used since the last time it cleared the bitmap. So it might be worth
 	 * walking the page tables of this mm_struct to clear the accessed bit.
 	 */
-	nodes_setall(mm->lru_gen.nodes);
+	if (mm->lru_gen)
+		nodes_setall(mm->lru_gen->nodes);
 }
 
 #else /* !CONFIG_LRU_GEN */
@@ -695,7 +712,7 @@ static inline void lru_gen_migrate_mm(struct mm_struct *mm)
 }
 #endif
 
-static inline void lru_gen_init_mm(struct mm_struct *mm)
+static inline void lru_gen_init_mm(struct mm_struct *mm, void *ext)
 {
 }
 
